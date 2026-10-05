@@ -62,9 +62,9 @@ export function Inspector({ sample: s, timeline, summary, provenance, timing, se
           <dt>Water depth</dt>
           <dd>{f2(s.depth_m)} m</dd>
           <dt>Volume</dt>
-          <dd>
-            {f1(s.volume_m3)} m³ ({pct(s.fill_fraction)} of brim)
-          </dd>
+          <dd>{f1(s.volume_m3)} m³</dd>
+          <dt>Fill (of brim)</dt>
+          <dd>{pct(s.fill_fraction)}</dd>
           <dt>Water surface</dt>
           <dd>{f1(s.surface_area_m2)} m²</dd>
           <dt>Catchment soil</dt>
@@ -76,14 +76,14 @@ export function Inspector({ sample: s, timeline, summary, provenance, timing, se
         <h3>Lotus (modelled)</h3>
         <dl>
           <dt>Leaf cover</dt>
-          <dd>
-            {f1(s.cover_m2)} m² ({pct(s.cover_of_water)} of water)
-          </dd>
+          <dd>{f1(s.cover_m2)} m²</dd>
+          <dt>Share of water</dt>
+          <dd>{pct(s.cover_of_water)}</dd>
           <dt>Pond saturation</dt>
           <dd>{pct(s.saturation)}</dd>
           <dt>Net growth rate</dt>
           <dd>{(s.growth_rate_per_day * 100).toFixed(1)}% / day</dd>
-          <dt>Limits: temp · light · depth</dt>
+          <dt>Limits T · L · D</dt>
           <dd>
             {f2(s.f_temperature)} · {f2(s.f_light)} · {f2(s.f_depth)}
           </dd>
@@ -130,7 +130,7 @@ export function Inspector({ sample: s, timeline, summary, provenance, timing, se
         <dl>
           <dt>Weather source</dt>
           <dd className={provenance.source === "synthetic" ? "warn" : ""}>
-            {provenance.source === "synthetic" ? "Synthetic demo weather (not real)" : provenance.source.replace("open-meteo-", "Open-Meteo ")}
+            {provenance.source === "synthetic" ? "Synthetic (not real)" : provenance.source.replace("open-meteo-", "Open-Meteo ")}
             {provenance.stale && " · stale cached copy"}
           </dd>
           <dt>Fetched</dt>
@@ -151,7 +151,7 @@ export function Inspector({ sample: s, timeline, summary, provenance, timing, se
             <>
               <dt>Simulation</dt>
               <dd>
-                {summary.hours} hourly steps in {summary.compute_ms.toFixed(1)} ms
+                {summary.hours} h in {summary.compute_ms.toFixed(1)} ms
               </dd>
             </>
           )}
@@ -159,7 +159,7 @@ export function Inspector({ sample: s, timeline, summary, provenance, timing, se
             <>
               <dt>Request</dt>
               <dd>
-                {timing.roundTripMs.toFixed(0)} ms round trip · result cache {timing.resultCache ?? "n/a"}
+                {timing.roundTripMs.toFixed(0)} ms · cache {timing.resultCache ?? "n/a"}
               </dd>
             </>
           )}
