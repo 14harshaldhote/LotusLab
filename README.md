@@ -38,6 +38,63 @@ becomes a living pond.
   status, gaps filled. If the provider is down, a recent cached copy is served and marked
   stale; otherwise you get a 503 and an explicit, labelled synthetic-weather option.
 
+## How the water works
+
+The pond is not a fixed blue shape. Its water is simulated every hour from the weather,
+and everything you see (the water edge, the mud ring, overflow, how much room the lotus
+has) comes from that water budget.
+
+### Every hour, in this order
+
+1. **Rain falls on the pond.** Rain (mm) × the pond's full footprint goes straight in.
+2. **Rain falls on the land around it.** The catchment soil acts like a sponge. After a
+   dry spell it soaks up most of the rain; once it is wet, most of the rain runs off
+   into the pond. If the sponge is full, everything runs off. Between showers the soil
+   slowly dries out again.
+3. **Water evaporates.** Open-Meteo's reference evaporation (FAO-56 ET₀, which already
+   accounts for heat, sun, wind and humidity) × 1.05 for open water × the *current*
+   water surface. Hot, sunny, windy, dry hours lose the most.
+4. **Water seeps away** through the pond bed, in proportion to the wetted area.
+5. **Overflow.** If the pond goes above its spill level, the extra water leaves over the
+   edge and is counted as overflow.
+6. **The new depth and surface** come from the volume. The pond is bowl shaped
+   (deep in the middle, shallow at the edges), so as it dries the water surface shrinks,
+   which also slows further evaporation. Lotus that end up on dry mud die back.
+
+Losses can never take more water than the pond holds, and every litre is booked in a
+ledger (rain, runoff, evaporation, seepage, overflow). Start volume + inflows − outflows
+equals end volume to about 1e-13 m³, and every API response reports that error.
+
+### What it looks like in numbers
+
+Default pond: 200 m² at the brim, 1.5 m spill depth, starting at 1.0 m, with 1,500 m² of
+land draining into it.
+
+| Situation | What the model does |
+|---|---|
+| 30 mm storm over 3 hours | Water rises from 1.00 m to 1.14 m. Only 6 m³ fell on the pond itself; 13 m³ came as runoff from the land. |
+| 20 mm of rain on dry vs. soaked land | Dry soil sends 1 mm of it to the pond; soaked soil sends all 20 mm. |
+| Hot dry week (6 mm/day evaporation, no rain) | Water drops from 1.00 m to 0.94 m (5.7 m³ evaporated, 1.8 m³ seeped). The water surface shrinks from 133 m² to 126 m². |
+| Monsoon burst on a nearly full pond | Depth caps at the 1.5 m spill level; 139 m³ overflows over 8 hours. |
+
+You can reproduce these with the functions in `backend/lotuslab/core`, and the test suite
+checks the same behaviour (mass balance over a year, overflow never exceeding the brim,
+a dry pond never going negative, wetter soil producing more runoff).
+
+### How the water drives everything else
+
+* **Lotus capacity** is the current water surface, so a shrinking pond squeezes the lotus
+  and a stranded shoreline kills leaves.
+* **Lotus growth** slows in water that is too shallow and stops on exposed mud.
+* **The scene** draws the water edge from the modelled surface area, shows the dry mud
+  ring as the pond drops, adds rain and ripples from the hourly rainfall, and shows water
+  spilling over the edge during overflow hours.
+* **The chart** plots depth against the dashed spill line, with rain bars underneath, and
+  the Inspector shows the running water ledger at the selected minute.
+* **What-if scenarios** change rain, temperature, cloud and wind, and the water budget
+  follows: hotter or windier raises evaporation, more cloud lowers it, more rain raises
+  both direct rain and runoff.
+
 ## The algorithms
 
 | Problem | Approach | Cost |
