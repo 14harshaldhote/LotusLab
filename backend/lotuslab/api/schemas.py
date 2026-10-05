@@ -173,6 +173,7 @@ class SensitivityResponse(BaseModel):
     provenance: Provenance
     temperature_offsets_c: list[float]
     precipitation_multipliers: list[float]
+    final_cover_fraction: list[list[float]]
     final_saturation: list[list[float]]
     final_depth_m: list[list[float]]
     overflow_m3: list[list[float]]

@@ -142,15 +142,17 @@ class LotusService:
         snap = await self.weather(req)
         pond, lotus = req.pond.to_params(), req.lotus.to_params()
         t = time.perf_counter()
-        sat, depth, over = [], [], []
+        cover, sat, depth, over = [], [], [], []
         for dt_c in req.temperature_offsets_c:
-            row_s, row_d, row_o = [], [], []
+            row_c, row_s, row_d, row_o = [], [], [], []
             for pm in req.precipitation_multipliers:
                 s = Scenario(temperature_offset_c=dt_c, precipitation_multiplier=pm)
                 summary = self._run(snap.weather, req, s, pond, lotus).summary
+                row_c.append(round(summary["final_cover_fraction"], 4))
                 row_s.append(round(summary["final_saturation"], 4))
                 row_d.append(round(summary["final_depth_m"], 4))
                 row_o.append(round(summary["totals_m3"]["overflow_m3"], 3))
+            cover.append(row_c)
             sat.append(row_s)
             depth.append(row_d)
             over.append(row_o)
@@ -159,6 +161,7 @@ class LotusService:
             "provenance": snap.provenance(round(req.latitude, 2), round(req.longitude, 2)),
             "temperature_offsets_c": req.temperature_offsets_c,
             "precipitation_multipliers": req.precipitation_multipliers,
+            "final_cover_fraction": cover,
             "final_saturation": sat,
             "final_depth_m": depth,
             "overflow_m3": over,
@@ -188,18 +191,22 @@ def run_payload(tl: Timeline, scenario: Scenario) -> dict[str, Any]:
 
 
 def divergence(a: Timeline, b: Timeline, threshold: float = 0.05) -> dict[str, Any]:
-    """Where and how far two runs on the same weather drift apart."""
-    d_sat = b.columns["saturation"] - a.columns["saturation"]
+    """Where and how far two runs on the same weather drift apart.
+
+    Lotus is compared as absolute cover (fraction of the brim-full pond), so a pond
+    that shrinks does not look "fuller" just because its capacity fell.
+    """
+    d_cover = b.columns["cover_fraction"] - a.columns["cover_fraction"]
     d_depth = b.columns["depth_m"] - a.columns["depth_m"]
-    over = np.flatnonzero(np.abs(d_sat) >= threshold)
-    i_max = int(np.abs(d_sat).argmax())
+    over = np.flatnonzero(np.abs(d_cover) >= threshold)
+    i_max = int(np.abs(d_cover).argmax())
     return {
         "threshold": threshold,
         "first_divergence_time": float(a.time[over[0]]) if over.size else None,
-        "max_saturation_gap": float(d_sat[i_max]),
-        "max_saturation_gap_time": float(a.time[i_max]),
+        "max_cover_gap": float(d_cover[i_max]),
+        "max_cover_gap_time": float(a.time[i_max]),
         "max_depth_gap_m": float(d_depth[int(np.abs(d_depth).argmax())]),
-        "final_saturation_delta": float(d_sat[-1]),
+        "final_cover_delta": float(d_cover[-1]),
         "final_depth_delta_m": float(d_depth[-1]),
         "overflow_delta_m3": b.summary["totals_m3"]["overflow_m3"] - a.summary["totals_m3"]["overflow_m3"],
     }

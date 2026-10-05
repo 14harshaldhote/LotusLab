@@ -186,6 +186,7 @@ def test_compare(client):
     assert r.status_code == 200
     d = r.json()
     assert d["divergence"]["final_depth_delta_m"] < 0
+    assert d["divergence"]["final_cover_delta"] <= 0
     assert d["variant"]["scenario"]["precipitation_multiplier"] == 0
 
 
@@ -204,8 +205,9 @@ def test_sensitivity_grid(client):
         json=body(source="synthetic", days=10, temperature_offsets_c=[0, 5], precipitation_multipliers=[0, 1, 2]),
     )
     d = r.json()
-    assert len(d["final_saturation"]) == 2 and len(d["final_saturation"][0]) == 3
+    assert len(d["final_cover_fraction"]) == 2 and len(d["final_cover_fraction"][0]) == 3
     assert d["final_depth_m"][0][0] <= d["final_depth_m"][0][2]
+    assert d["final_cover_fraction"][0][0] <= d["final_cover_fraction"][0][2]  # wetter pond holds more lotus
 
 
 def test_puzzle(client):
