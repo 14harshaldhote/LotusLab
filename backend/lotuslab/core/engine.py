@@ -93,7 +93,8 @@ class Timeline:
         row = m[i] if frac == 0.0 else m[i] + (m[i + 1] - m[i]) * frac
         out = dict(zip(self._names, row.tolist()))  # type: ignore[attr-defined]
         out["time"] = float(t)
-        out["phase"] = int(day_phase(np.array([out["sun_elevation_deg"]]))[0])
+        e = out["sun_elevation_deg"]
+        out["phase"] = 0 if e < -6.0 else 1 if e < 0.0 else 2 if e < 6.0 else 3  # see solar.day_phase
         return out
 
     def between(self, column: str, t_a: float, t_b: float) -> float:
@@ -286,6 +287,8 @@ def _summarise(
         "final_cover_fraction": float(cover_frac[-1]),
         "peak_cover_fraction": float(cover_frac.max()),
         "peak_cover_time": float(time[int(cover_frac.argmax())]),
+        "final_saturation": float(sat[-1]),
+        "peak_saturation": float(sat.max()),
         "totals_m3": totals,
         "mass_balance_error_m3": float(balance_error),
         "overflow_hours": int(np.count_nonzero(c["overflow_m3"] > 0)),
